@@ -1,0 +1,6 @@
+source "C:/esp32/blynk/common/app_update/Kconfig.projbuild"
+source "C:/esp32/esp-idf/components/bootloader/Kconfig.projbuild"
+source "C:/esp32/esp-idf/components/esptool_py/Kconfig.projbuild"
+source "C:/esp32/esp-idf/components/partition_table/Kconfig.projbuild"
+source "C:/esp32/esp-idf/components/protocol_examples_common/Kconfig.projbuild"
+source "C:/esp32/blynk/main/Kconfig.projbuild"
