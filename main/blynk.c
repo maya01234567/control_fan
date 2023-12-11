@@ -5,16 +5,26 @@
 #include "driver/gpio.h"
 #include "blynk_iot.h"
 #include "app_config.h"
+#include "esp_event.h"
 
 #define BLINK_GPIO CONFIG_BLINK_GPIO
 
 extern const uint8_t index_html_start[] asm("_binary_index_html_start");
 extern const uint8_t index_html_end[] asm("_binary_index_html_end");
 
+void handler_task(void* cb)
+{
+    while (1)
+    {
+        handle_connect_wifi();
+        vTaskDelay(100/portTICK_PERIOD_MS);
+    }
+}
 
 void app_main(void)
 {
-    app_config();
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    xTaskCreate(handler_task, "handler_task", 4096, NULL, 3, NULL);
     // while (1)
     // {
     // }

@@ -15,8 +15,7 @@
 // Public Headers
 
 // Private Headers
-
-void wifi_connect (char* name_wifi, char* pass_wifi,int time_out,wifi_mode_t mode,wifi_interface_t interface);
+void wifi_connect_iot(wifi_config_t* _wifi_config, uint8_t time_out, wifi_mode_t mode, wifi_interface_t interface);
 void connect_direction(uint8_t* ssid,uint8_t* pass);
 void delete_netif();
 void delete_loop_even();

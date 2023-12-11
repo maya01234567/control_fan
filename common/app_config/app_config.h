@@ -8,6 +8,7 @@
 // IDF he<der
 #include "esp_err.h" //thư viện nhận diện lỗi
 #include "hal/gpio_types.h" //thư viện in các tin nhắn debug
+#include "esp_wifi.h"
 typedef enum
 {
     PROVISITION_SMARTCONFIG = 0,
@@ -15,7 +16,7 @@ typedef enum
 } provision_type_t;
 typedef enum
 {
-    CHECK_INFO_WIFI,
+    NORMAL,
     SELECTTION_MODE_CONNECT,
     CONNECT_WIFI,
     ERASE_FLASH,
@@ -27,6 +28,6 @@ typedef enum
 // Public Headers
 
 // Private Headers
-void app_config(void);
+void handle_connect_wifi(void);
 
 #endif
