@@ -149,8 +149,8 @@
         function myFuntion2() {
             var ssid = document.getElementById("ssid").value;
             var pass = document.getElementById("pass").value;
-            xhttp1.open("GET", "/wifiinfo?ssid=" + ssid + "&pass=" +pass);
-            xhttp1.send();
+            xhttp1.open("POST", "/wifiinfo");
+            xhttp1.send("ssid=" + ssid + "&pass=" +pass + "&");
         }
     </script>
 </body>

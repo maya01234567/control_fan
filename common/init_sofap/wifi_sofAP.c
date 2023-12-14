@@ -15,7 +15,6 @@
 #include "esp_log.h"
 #include "wifi_sofAP.h"
 
-
 #include "lwip/err.h"
 #include "lwip/sys.h"
 
@@ -52,12 +51,12 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
 
 void wifi_init_softap(void)
 {
-    // init stack wiffi
-    ESP_ERROR_CHECK(esp_netif_init());
+    if(!my_spt)
+    {
     my_spt = esp_netif_create_default_wifi_ap();
-
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+    }
 
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
                                                         ESP_EVENT_ANY_ID,
@@ -79,6 +78,7 @@ void wifi_init_softap(void)
         wifi_config.ap.authmode = WIFI_AUTH_OPEN;
     }
 
+    ESP_ERROR_CHECK(esp_wifi_stop());
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());

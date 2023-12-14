@@ -22,6 +22,15 @@ typedef enum
     ERASE_FLASH,
     CONNECT_ERROR
 } status_connect_wifi_t;
+typedef struct 
+{
+    wifi_config_t wifi_config;
+    status_connect_wifi_t status_connect;
+    provision_type_t provision_type;
+    uint8_t sta;
+    uint8_t block_init;
+}info_config_wifi_t;
+
 
 // Component header
 
@@ -29,5 +38,6 @@ typedef enum
 
 // Private Headers
 void handle_connect_wifi(void);
+void app_config_init();
 
 #endif

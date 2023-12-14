@@ -12,7 +12,6 @@
 #include "esp_log.h"
 #include "esp_smartconfig.h"
 #include "app_config.h"
-
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t s_wifi_event_group;
 // static EventGroupHandle_t s2_wifi_event_group;
@@ -25,7 +24,6 @@ static EventGroupHandle_t s_wifi_event_group;
 
 static const char *TAG = "wifi station";
 
-
 static uint8_t s_retry_num = 0;
 static uint8_t time_err = 0;
 static esp_netif_t *my_apt;
@@ -33,7 +31,6 @@ static esp_netif_t *my_apt;
 static void event_handler(void *arg, esp_event_base_t event_base,
                           int32_t event_id, void *event_data)
 {
-    printf("==>>>>\n");
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START)
     {
         ESP_LOGI(TAG, "WIFI START ...");
@@ -67,16 +64,19 @@ static void event_handler(void *arg, esp_event_base_t event_base,
     }
 }
 
-void wifi_connect_iot(wifi_config_t* _wifi_config, uint8_t time_out, wifi_mode_t mode, wifi_interface_t interface)
+int8_t wifi_connect_iot(info_config_wifi_t *_wifi_config, uint8_t time_out, wifi_mode_t mode, wifi_interface_t interface)
 {
-    printf("=>>ssid:%s\n", _wifi_config->sta.ssid);
-    printf("=>>password:%s\n", _wifi_config->sta.password);
+    ESP_LOGI(TAG, "=>>ssid:%s\n", _wifi_config->wifi_config.sta.ssid);
+    ESP_LOGI(TAG, "=>>password:%s\n", _wifi_config->wifi_config.sta.password);
     s_wifi_event_group = xEventGroupCreate();
     time_err = time_out;
 
-    my_apt = esp_netif_create_default_wifi_sta();
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+    if (!(my_apt))
+    {
+        my_apt = esp_netif_create_default_wifi_sta();
+        wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+        ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+    }
 
     esp_event_handler_instance_t instance_any_id;
     esp_event_handler_instance_t instance_got_ip;
@@ -85,7 +85,7 @@ void wifi_connect_iot(wifi_config_t* _wifi_config, uint8_t time_out, wifi_mode_t
 
     ESP_ERROR_CHECK(esp_wifi_stop());
     ESP_ERROR_CHECK(esp_wifi_set_mode(mode));
-    ESP_ERROR_CHECK(esp_wifi_set_config(interface, _wifi_config));
+    ESP_ERROR_CHECK(esp_wifi_set_config(interface, &_wifi_config->wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
 
     ESP_LOGI(TAG, "wifi_init_sta finished.");
@@ -102,22 +102,29 @@ void wifi_connect_iot(wifi_config_t* _wifi_config, uint8_t time_out, wifi_mode_t
     if (bits & WIFI_CONNECTED_BIT)
     {
         ESP_LOGI(TAG, "connected to ap SSID:%s password:%s",
-                 _wifi_config->sta.ssid, _wifi_config->sta.password);
+                 _wifi_config->wifi_config.sta.ssid, _wifi_config->wifi_config.sta.password);
+        ESP_ERROR_CHECK(esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, instance_got_ip)); // cancel  handler
+        ESP_ERROR_CHECK(esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, instance_any_id));
+        vEventGroupDelete(s_wifi_event_group);
+        return ESP_OK;
     }
     else if (bits & WIFI_FAIL_BIT)
     {
         ESP_LOGI(TAG, "Failed to connect to SSID:%s, password:%s",
-                 _wifi_config->sta.ssid, _wifi_config->sta.password);
+                 _wifi_config->wifi_config.sta.ssid, _wifi_config->wifi_config.sta.password);
+        ESP_ERROR_CHECK(esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, instance_got_ip)); // cancel  handler
+        ESP_ERROR_CHECK(esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, instance_any_id));
+        vEventGroupDelete(s_wifi_event_group);
+        return ESP_FAIL;
     }
     else
     {
         ESP_LOGE(TAG, "UNEXPECTED EVENT");
+        ESP_ERROR_CHECK(esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, instance_got_ip)); // cancel  handler
+        ESP_ERROR_CHECK(esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, instance_any_id));
+        vEventGroupDelete(s_wifi_event_group);
+        return ESP_FAIL;
     }
-
-    /* The event will not be processed after unregister */
-    ESP_ERROR_CHECK(esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, instance_got_ip)); // cancel  handler
-    ESP_ERROR_CHECK(esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, instance_any_id));
-    vEventGroupDelete(s_wifi_event_group);
 }
 void delete_netif()
 {
@@ -132,7 +139,3 @@ void delete_loop_even()
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }
-// void wifi_iot_init(wifi_config_t *_wifi_config)
-// {
-// _wifi_config = &wifi_config;
-// }

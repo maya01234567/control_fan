@@ -17,14 +17,15 @@ void handler_task(void* cb)
     while (1)
     {
         handle_connect_wifi();
-        vTaskDelay(100/portTICK_PERIOD_MS);
+        vTaskDelay(200/portTICK_PERIOD_MS);
     }
 }
 
 void app_main(void)
 {
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-    xTaskCreate(handler_task, "handler_task", 4096, NULL, 3, NULL);
+    app_config_init();
+    xTaskCreate(handler_task, "handler_task", 3072, NULL, 3, NULL);
     // while (1)
     // {
     // }
