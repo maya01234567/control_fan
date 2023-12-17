@@ -140,24 +140,7 @@ void app_ota_start(const char* url_link)
     .keep_alive_enable = true,
     };
 
-#ifdef CONFIG_EXAMPLE_FIRMWARE_UPGRADE_URL_FROM_STDIN // nếu nhãn này được define thì thực hiện lấy url từ UART
-    char url_buf[OTA_URL_SIZE];
-    if (strcmp(config.url, "FROM_STDIN") == 0)
-    {
-        example_configure_stdin_stdout();
-        fgets(url_buf, OTA_URL_SIZE, stdin);
-        int len = strlen(url_buf);
-        url_buf[len - 1] = '\0';
-        config.url = url_buf;
-    }
-    else
-    {
-        ESP_LOGE(TAG, "Configuration mismatch: wrong firmware upgrade image url");
-        abort();
-    }
-#endif
-
-#ifdef CONFIG_EXAMPLE_SKIP_COMMON_NAME_CHECK // nếu nhãn này được define thì thực hiện lệnh trong đó
+#ifdef CONFIG_EXAMPLE_SKIP_COMMON_NAME_CHECK // bỏ qua việc kiểm tra common name của chứng chỉ SSL
     config.skip_cert_common_name_check = true;
 #endif
     const esp_http_client_config_t *config = &my_config;
@@ -170,8 +153,4 @@ void app_ota_start(const char* url_link)
     {
         ESP_LOGE(TAG, "Firmware upgrade failed");
     }
-    // while (1)
-    // {
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
-    // }
 }

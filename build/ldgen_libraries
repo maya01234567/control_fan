@@ -70,6 +70,7 @@ C:/esp32/blynk/build/esp-idf/smart_config/libsmart_config.a
 C:/esp32/blynk/build/esp-idf/connec_wifi/libconnec_wifi.a
 C:/esp32/blynk/build/esp-idf/http_sever_sta/libhttp_sever_sta.a
 C:/esp32/blynk/build/esp-idf/init_sofap/libinit_sofap.a
+C:/esp32/blynk/build/esp-idf/ota_driver/libota_driver.a
 C:/esp32/blynk/build/esp-idf/app_config/libapp_config.a
 C:/esp32/blynk/build/esp-idf/app_nvs/libapp_nvs.a
 C:/esp32/blynk/build/esp-idf/app_ota/libapp_ota.a

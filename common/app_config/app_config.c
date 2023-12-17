@@ -9,6 +9,8 @@
 #include "http_sever_sta.h"
 #include "wifi_sofAP.h"
 #include "nvs_flash.h"
+#include <esp_event.h>
+#include "otadrive_esp.h"
 
 #include "lwip/err.h"
 #include "lwip/sys.h"
@@ -36,6 +38,7 @@ static void connect_wifi()
     if (i == ESP_OK)
     {
         ESP_LOGI(TAG,"SUCESS");
+        ESP_ERROR_CHECK(esp_event_post(OTADRIVE_EVENTS, WIFI_CONNECTTED, NULL, 0, portMAX_DELAY));
         info_config_wifi.status_connect = NORMAL;
     }
     else if (i == ESP_FAIL)
@@ -90,7 +93,6 @@ static void app_config(void)
             info_config_wifi.sta = 0;
             set_callback_infowifi_smart(&set_callback_wifiinfo_smart);
             smart_config_connect(&info_config_wifi.wifi_config);
-            //info_config_wifi.status_connect = CONNECT_WIFI;
         }
         else if (info_config_wifi.provision_type == PROVISITION_ACCESSPOIN && info_config_wifi.sta == 1)
         {

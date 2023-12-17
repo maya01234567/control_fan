@@ -70,6 +70,7 @@ $<TARGET_FILE:__idf_smart_config>
 $<TARGET_FILE:__idf_connec_wifi>
 $<TARGET_FILE:__idf_http_sever_sta>
 $<TARGET_FILE:__idf_init_sofap>
+$<TARGET_FILE:__idf_ota_driver>
 $<TARGET_FILE:__idf_app_config>
 $<TARGET_FILE:__idf_app_nvs>
 $<TARGET_FILE:__idf_app_ota>
