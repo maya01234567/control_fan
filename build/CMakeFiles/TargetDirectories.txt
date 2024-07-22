@@ -728,6 +728,13 @@ C:/esp32/blynk/build/esp-idf/output_iot/CMakeFiles/edit_cache.dir
 C:/esp32/blynk/build/esp-idf/output_iot/CMakeFiles/rebuild_cache.dir
 C:/esp32/blynk/build/esp-idf/output_iot/CMakeFiles/list_install_components.dir
 C:/esp32/blynk/build/esp-idf/output_iot/CMakeFiles/install/strip.dir
+C:/esp32/blynk/build/esp-idf/timer_tick/CMakeFiles/list_install_components.dir
+C:/esp32/blynk/build/esp-idf/timer_tick/CMakeFiles/__idf_timer_tick.dir
+C:/esp32/blynk/build/esp-idf/timer_tick/CMakeFiles/install/local.dir
+C:/esp32/blynk/build/esp-idf/timer_tick/CMakeFiles/install.dir
+C:/esp32/blynk/build/esp-idf/timer_tick/CMakeFiles/edit_cache.dir
+C:/esp32/blynk/build/esp-idf/timer_tick/CMakeFiles/rebuild_cache.dir
+C:/esp32/blynk/build/esp-idf/timer_tick/CMakeFiles/install/strip.dir
 C:/esp32/blynk/build/esp-idf/touch_pad_app/CMakeFiles/__idf_touch_pad_app.dir
 C:/esp32/blynk/build/esp-idf/touch_pad_app/CMakeFiles/install/local.dir
 C:/esp32/blynk/build/esp-idf/touch_pad_app/CMakeFiles/install.dir

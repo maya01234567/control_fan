@@ -157,7 +157,7 @@ typedef void (*blynk_response_handler_t)(blynk_client_t*, uint16_t, void*);
 typedef void (*blynk_handler_t)(blynk_client_t*, uint16_t, const char*, int, char**, void*);
 
 struct _blynk_options_t {
-	char server[64];
+	char server[255];
 	char token[64];
 	unsigned int reconnect_delay;
 	unsigned int ping_interval; /* ms */

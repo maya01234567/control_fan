@@ -82,6 +82,7 @@ C:/esp32/blynk/build/esp-idf/led_strip/libled_strip.a
 C:/esp32/blynk/build/esp-idf/ledc_app/libledc_app.a
 C:/esp32/blynk/build/esp-idf/mqtt_app/libmqtt_app.a
 C:/esp32/blynk/build/esp-idf/output_iot/liboutput_iot.a
+C:/esp32/blynk/build/esp-idf/timer_tick/libtimer_tick.a
 C:/esp32/blynk/build/esp-idf/touch_pad_app/libtouch_pad_app.a
 C:/esp32/blynk/build/esp-idf/uart_iot/libuart_iot.a
 C:/esp32/blynk/build/esp-idf/ws2812b/libws2812b.a

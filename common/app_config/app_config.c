@@ -137,6 +137,7 @@ void handle_connect_wifi(void)
 }
 void app_config_init()
 {
+    printf("enter \n");
     info_config_wifi.provision_type = PROVISITION_SMARTCONFIG;
     info_config_wifi.status_connect = SELECTTION_MODE_CONNECT;
     info_config_wifi.sta = 1;

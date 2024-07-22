@@ -59,7 +59,7 @@ static const char *TAG = "OTADRIVE";
 
 ESP_EVENT_DEFINE_BASE(OTADRIVE_EVENTS);
 
-typedef struct otadrive_session_t
+typedef struct
 {
     char apiKey[40];          /*!< The APIkey of the product */
     char current_version[24]; /*!< Version code of the current firmware */
@@ -77,7 +77,7 @@ typedef struct otadrive_session_t
     TaskHandle_t task_handle;
     const esp_partition_t *storage_partition;
 } otadrive_session_t;
-typedef struct otadrive_session_t otadrive_session_t;
+// typedef struct otadrive_session_t otadrive_session_t;
 static otadrive_session_t otadrv_hdl;
 esp_http_client_handle_t client = NULL;
 uint8_t lock = 1;
@@ -173,7 +173,7 @@ otadrive_result otadrive_updateFirmwareInfo()
     ESP_ERROR_CHECK(esp_event_post(OTADRIVE_EVENTS, OTADRIVE_EVENT_START_CHECK, &otadrv_hdl, sizeof(otadrive_session_t *), portMAX_DELAY));
     char url[CONFIG_OTADRIVE_URL_LEN];
     snprintf(url, CONFIG_OTADRIVE_URL_LEN, "%s/update?k=%s&v=%s&s=%s", otadrv_hdl.serverurl, otadrv_hdl.apiKey, otadrv_hdl.current_version, otadrv_hdl.serial);
-    ESP_LOGV(TAG, "Searching for Firmware from %s", url);
+    ESP_LOGI(TAG, "Searching for Firmware from %s", url);
     esp_http_client_config_t httpconfig = {
         .url = url,
         .method = HTTP_METHOD_HEAD,
@@ -182,6 +182,7 @@ otadrive_result otadrive_updateFirmwareInfo()
     };
 
     client = esp_http_client_init(&httpconfig);
+    printf("code0:%d \n", r.code);
 
     esp_err_t err = esp_http_client_perform(client);
     if (err == ESP_OK)
@@ -193,11 +194,14 @@ otadrive_result otadrive_updateFirmwareInfo()
         case 200:
             r.available_size = esp_http_client_get_content_length(client);
             strncpy(r.available_version, otadrv_hdl.result.hdr_ver, CONFIG_OTADRIVE_VER_LEN - 1);
+            printf("code1:%d \n", r.code);
+            // r.code = OTADRIVE_NewFirmwareExists;
             /* FALLTHROUGH */
         case 304:
         case 401:
         case 404:
             r.code = esp_http_client_get_status_code(client);
+            printf("code2:%d \n", r.code);
             break;
         default:
             r.code = OTADRIVE_NoFirmwareExists;
@@ -205,10 +209,12 @@ otadrive_result otadrive_updateFirmwareInfo()
         }
         ESP_LOGI(TAG, "HTTP GET Status = %d", //, content_length = %" PRId64 "",
                  esp_http_client_get_status_code(client));
+        printf("code3:%d \n", r.code);
     }
     else
     {
         ESP_LOGI(TAG, "HTTP GET Status = %d", err);
+        printf("code err:%d \n",r.code);
     }
 
     esp_http_client_close(client);
@@ -232,10 +238,10 @@ static esp_err_t validate_image_header(esp_app_desc_t *new_app_info)
     ESP_LOG_BUFFER_HEX(TAG, new_app_info->app_elf_sha256, sizeof(new_app_info->app_elf_sha256));
 
     const esp_partition_t *running = esp_ota_get_running_partition();
-    ESP_LOGD(TAG, "Current partition %s type %d subtype %d (offset 0x%08lx)",
+    ESP_LOGI(TAG, "Current partition %s type %d subtype %d (offset 0x%08lx)",
              running->label, running->type, running->subtype, (long unsigned int)running->address);
     const esp_partition_t *update = esp_ota_get_next_update_partition(NULL);
-    ESP_LOGD(TAG, "Update partition %s type %d subtype %d (offset 0x%08lx)",
+    ESP_LOGI(TAG, "Update partition %s type %d subtype %d (offset 0x%08lx)",
              update->label, update->type, update->subtype, (long unsigned int)update->address);
 
 #ifdef CONFIG_BOOTLOADER_APP_ANTI_ROLLBACK
@@ -255,11 +261,11 @@ static esp_err_t validate_image_header(esp_app_desc_t *new_app_info)
     return ESP_OK;
 }
 
-static esp_err_t http_client_set_header_cb(esp_http_client_handle_t http_client)
-{
-    return esp_http_client_set_header(http_client, "Accept", "application/octet-stream");
-}
-
+// static esp_err_t http_client_set_header_cb(esp_http_client_handle_t http_client)
+// {
+// return esp_http_client_set_header(http_client, "Accept", "application/octet-stream");
+// }
+//
 esp_err_t _http_event_storage_handler(esp_http_client_event_t *evt)
 {
     static int output_pos;
@@ -342,9 +348,6 @@ otadrive_result otadrive_updateFirmware()
 
     esp_https_ota_config_t ota_config = {
         .http_config = &httpconfig,
-        //.http_client_init_cb = http_client_set_header_cb,
-        //.partial_http_download = true,
-        //.max_http_request_size = 4096
     };
 
     esp_https_ota_handle_t https_ota_handle = NULL;

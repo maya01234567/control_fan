@@ -12,7 +12,7 @@ enum event_dev_id {
 };
 // Other Posix headers
 
-typedef void (*ota_data_callback_t) (char *topic,int leng,char* data);
+typedef void (*ota_data_callback_t) (int leng_topic,char *topic,int leng,char* data);
 // IDF he<der
 // Component header
 

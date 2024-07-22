@@ -36,7 +36,7 @@ ota_data_callback_t data_callback = NULL;
 static int msg_id;
 
 static const char *TAG = "MQTTS_APP";
-esp_mqtt_client_handle_t client;
+static esp_mqtt_client_handle_t client;
 
 extern const uint8_t client_cert_pem_start[] asm("_binary_client_crt_start");
 extern const uint8_t client_cert_pem_end[] asm("_binary_client_crt_end");
@@ -80,10 +80,10 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
         break;
     case MQTT_EVENT_DATA:
         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
-        printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
-        printf("DATA=%.*s\r\n", event->data_len, event->data);
+        ESP_LOGI(TAG,"TOPIC=%.*s\r\n", event->topic_len, event->topic);
+        ESP_LOGI(TAG,"DATA=%.*s\r\n", event->data_len, event->data);
         esp_event_post(EVENT_DEV_BASE, MQTT_DEV_EVENT_DATA, NULL, 0, portMAX_DELAY);
-        data_callback(event->topic,event->data_len, event->data);
+        data_callback(event->topic_len,event->topic,event->data_len, event->data);
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
@@ -99,9 +99,13 @@ void mqtt_app_init(void)
 {
 
     const esp_mqtt_client_config_t mqtt_cfg = {
-        .uri = "mqtt://industrial.api.ubidots.com:1883",
+        //sprintf(uri + strlen(uri), "device:%s@%s:%u", t, addr, port);
+        .uri = "mqtt://device:0mUb3DKviCER9iOKVBNGNMxaxkC6dKbu@blynk.cloud:1883",
         .event_handle = mqtt_event_handler,
-        .username = "BBFF-2rm7COaTcwv3nQEaEkjdVHlOhL3R5i",
+        .username = "test",
+        .password = "0mUb3DKviCER9iOKVBNGNMxaxkC6dKbu",
+        .client_id = "TMPL64cP0z-wE",
+        .keepalive = 45,
         // .client_cert_pem = (const char *)client_cert_pem_start,
         // .client_key_pem = (const char *)client_key_pem_start,
     };

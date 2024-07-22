@@ -62,8 +62,8 @@ SOFTWARE.
 
 const char *tag = "blynk";
 
-static const char default_server[] = "blynk-cloud.com";
-static const char default_port[5] = "8442";
+static const char default_server[] = "sgp1.blynk.cloud";
+static const char default_port[] = "80";
 
 static void parse_cmd(blynk_client_t *c, uint8_t d);
 static void parse_id(blynk_client_t *c, uint8_t d);
@@ -115,7 +115,7 @@ blynk_err_t blynk_init(blynk_client_t *c)
 
 blynk_err_t blynk_set_options(blynk_client_t *c, const blynk_options_t *opt)
 {
-	BLYNK_CHECK_MAGIC(c);
+	BLYNK_CHECK_MAGIC(c); // kiểm tra c hợp lệ không
 
 	if (!opt->token[0])
 	{
@@ -155,6 +155,8 @@ blynk_err_t blynk_set_options(blynk_client_t *c, const blynk_options_t *opt)
 	}
 
 	xSemaphoreGive(s->mtx);
+	printf("%s\n", s->opt.server);
+	printf("%s\n", s->opt.token);
 
 	return BLYNK_OK;
 }
@@ -246,23 +248,23 @@ static uint16_t get_id(blynk_client_t *c, TickType_t deadline, blynk_response_ha
 		p->id = 0;
 		memset(p->awaiting, 9, sizeof(p->awaiting));
 	}
-
 	uint16_t id = p->id++;
-
 	if (!handler)
 	{
 		return id;
 	}
 
 	int i;
-	for (i = 0; i < BLYNK_MAX_AWAITING; i++)
+	for (i = 0; i < BLYNK_MAX_AWAITING; i++) // chờ lấy id
 	{
 		if (!p->awaiting[i].id)
 		{
+			printf("set a waiting \n");
 			p->awaiting[i].handler = handler;
 			p->awaiting[i].id = id;
 			p->awaiting[i].data = data;
 			p->awaiting[i].deadline = deadline;
+			printf("id %d\n", id);
 			return id;
 		}
 	}
@@ -272,11 +274,12 @@ static uint16_t get_id(blynk_client_t *c, TickType_t deadline, blynk_response_ha
 
 static size_t blynk_serialize(uint8_t *buf, size_t buf_sz, const blynk_message_t *msg)
 {
-	buf[0] = msg->command;
-	buf[1] = (msg->id >> 8) & 0xff;
+	buf[0] = msg->command;			// 1 byte lenh
+	buf[1] = (msg->id >> 8) & 0xff; // 2 byte id
 	buf[2] = msg->id & 0xff;
-	buf[3] = (msg->len >> 8) & 0xff;
+	buf[3] = (msg->len >> 8) & 0xff; // 2byte do dai
 	buf[4] = msg->len & 0xff;
+	// printf("buff %s\n",(char*)buf);
 
 	size_t msg_sz = 5;
 
@@ -288,9 +291,9 @@ static size_t blynk_serialize(uint8_t *buf, size_t buf_sz, const blynk_message_t
 		{
 			pl_sz = buf_sz - msg_sz;
 		}
-
 		memcpy(buf + msg_sz, msg->payload, pl_sz);
 		msg_sz += pl_sz;
+		printf("msg_size %d\n", msg_sz);
 	}
 
 	return msg_sz;
@@ -315,33 +318,40 @@ static blynk_err_t blynk_send_internal(blynk_client_t *c,
 		.handler = handler,
 		.data = data,
 	};
-
+	printf("data : %d \n", ctl.message.command);
 	if (cmd != BLYNK_CMD_RESPONSE && len && payload)
 	{
+		printf("blynk different cmd response \n");
 		if (len > sizeof(ctl.message.payload))
 		{
 			len = ctl.message.len = sizeof(ctl.message.payload);
 		}
+		printf("payload %s \n", ctl.message.payload);
 		memcpy(ctl.message.payload, payload, len);
+		printf("payload2 %s \n", ctl.message.payload);
 	}
 
 	if (!xQueueSend(c->priv.ctl_queue, &ctl, wait))
 	{
+		printf("queue send err \n");
 		return BLYNK_ERR_MEM;
 	}
 
 	/* cancel select */
 	uint8_t dummy = 0;
-	if (write(c->priv.ctl[1], &dummy, 1) < 0)
+	printf("priv ctr %n \n", c->priv.ctl);
+	if (write(c->priv.ctl[1], &dummy, 1) < 0) // ghi 0 vào phần thử ctr[1]
 	{
 		return BLYNK_ERR_ERRNO;
 	}
+	printf("priv ctr2  %n \n", c->priv.ctl);
 
 	return BLYNK_OK;
 }
 
 static void parse_cmd(blynk_client_t *c, uint8_t d)
 {
+	printf("parse cmd  \n");
 	blynk_private_t *p = &c->priv;
 	p->message.command = d;
 	p->cnt = 0;
@@ -484,11 +494,13 @@ static int parse_args(char *payload, int len, char **args, int sz)
 
 static void handle_message(blynk_client_t *c)
 {
+	printf("hanlder mess \n");
 	blynk_state_data_t *s = &c->state;
 	blynk_private_t *p = &c->priv;
 
 	if (p->message.command == BLYNK_CMD_RESPONSE)
 	{
+		printf("blynk_respon \n");
 		int i;
 		for (i = 0; i < BLYNK_MAX_AWAITING; i++)
 		{
@@ -496,7 +508,8 @@ static void handle_message(blynk_client_t *c)
 			{
 				if (p->awaiting[i].handler)
 				{
-					p->awaiting[i].handler(c, p->message.len, p->awaiting[i].data);
+					printf("call back handler \n");
+					p->awaiting[i].handler(c, p->message.len, p->awaiting[i].data);//truyền tham số hàm auth
 				}
 
 				p->awaiting[i].id = 0;
@@ -613,16 +626,18 @@ fail_0:
 
 static void auth_cb(blynk_client_t *c, uint16_t status, void *data)
 {
-	ESP_LOGI(tag, "auth: %u", status);
+	ESP_LOGI(tag, "auth: %d", status);
 
 	if (status != BLYNK_STATUS_SUCCESS)
 	{
 		if (status == BLYNK_STATUS_RESPONSE_TIMEOUT)
 		{
+			ESP_LOGI(tag, "time_out: %u", status);
 			set_disconnected(c, BLYNK_ERR_TIMEOUT, 0);
 		}
 		else
 		{
+			ESP_LOGI(tag, "!= BLYNK_STATUS_SUCCESS not time out \n");
 			set_disconnected(c, BLYNK_ERR_STATUS, status);
 		}
 	}
@@ -764,6 +779,9 @@ static blynk_err_t handle_timers(blynk_client_t *c)
 
 static blynk_err_t blynk_loop(blynk_client_t *c)
 {
+	printf("token : %s\n", c->state.opt.token);
+	printf("sever : %s\n", c->state.opt.server);
+	ESP_LOGI(tag, "loop...");
 	blynk_state_data_t *s = &c->state;
 	blynk_private_t *p = &c->priv;
 
@@ -774,13 +792,12 @@ static blynk_err_t blynk_loop(blynk_client_t *c)
 	char hostname[128];
 	strlcpy(hostname, opt.server, sizeof(hostname));
 
-	char *servname = strchr(hostname, ':');
+	char *servname = strchr(hostname, ':'); // tìm ký tự : trong url
 	if (!servname)
 	{
 		return BLYNK_ERR_INVALID_OPTION;
 	}
-
-	*(servname++) = 0;
+	*(servname++) = 0; // gán giá trị mà vị trí con trỏ trỏ đến = 0 sau đó tăng con tro len 1
 
 	struct addrinfo hints;
 	memset(&hints, 0, sizeof(struct addrinfo));
@@ -791,24 +808,34 @@ static blynk_err_t blynk_loop(blynk_client_t *c)
 
 	struct addrinfo *result;
 	int res;
+	printf("token1 : %s\n", hostname);
+	printf("sever1 : %s\n", servname);
 	if ((res = getaddrinfo(hostname, servname, &hints, &result)) != 0)
 	{
+		printf("err\n");
 		set_disconnected(c, BLYNK_ERR_GAI, res);
 		goto fail_0;
 	}
-
 	int fd = -1;
 	struct addrinfo *r;
+	printf("family : %d\n", result->ai_family);
+	printf("sockettype : %d\n", result->ai_socktype);
+	printf("protocol : %d\n", result->ai_protocol);
 	for (r = result; r != NULL; r = r->ai_next)
 	{
+		printf("family : %d\n", r->ai_family);
+		printf("sockettype : %d\n", r->ai_socktype);
+		printf("protocol : %d\n", r->ai_protocol);
 		fd = socket(r->ai_family, r->ai_socktype, r->ai_protocol);
-		if (fd < 0)
+		if (fd < 0) //,0 mở soket thất bại
 		{
+			printf("open soket err \n");
 			continue;
 		}
 
 		if (connect(fd, r->ai_addr, r->ai_addrlen) < 0)
 		{
+			printf("connect soket err \n");
 			close(fd);
 			fd = -1;
 			continue;
@@ -817,7 +844,7 @@ static blynk_err_t blynk_loop(blynk_client_t *c)
 		break;
 	}
 	freeaddrinfo(result);
-
+	printf("finish soket : %d\n", fd);
 	if (fd < 0)
 	{
 		set_disconnected(c, BLYNK_ERR_ERRNO, errno);
@@ -825,6 +852,7 @@ static blynk_err_t blynk_loop(blynk_client_t *c)
 	}
 
 	int flags = fcntl(fd, F_GETFL, 0);
+	printf("finish fget : %d\n", flags);
 	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 
 	set_state(c, BLYNK_STATE_CONNECTED);
@@ -841,9 +869,11 @@ static blynk_err_t blynk_loop(blynk_client_t *c)
 
 	/* login */
 	blynk_err_t ret;
+	// gửi 1 lệnh điều khiển vào hanfgd đợi c->priv.ctl_queue
 	if ((ret = blynk_send_internal(c, BLYNK_CMD_LOGIN, 0, strlen(opt.token),
 								   (uint8_t *)opt.token, auth_cb, NULL, 0)) != BLYNK_OK)
 	{
+		printf("err\n");
 		set_disconnected(c, ret, ret == BLYNK_ERR_ERRNO ? errno : 0);
 		goto fail_1;
 	}
@@ -854,36 +884,39 @@ static blynk_err_t blynk_loop(blynk_client_t *c)
 		fd_set rdset;
 		fd_set wrset;
 
-		FD_ZERO(&rdset);
-		FD_ZERO(&wrset);
+		FD_ZERO(&rdset); // Xóa tất cả các file descriptor khỏi tập hợp theo dõi sự kiện đọc.
+		FD_ZERO(&wrset); // Xóa tất cả các file descriptor khỏi tập hợp theo dõi sự kiện ghi.
 
-		FD_SET(fd, &rdset);
-		FD_SET(p->ctl[0], &rdset);
+		FD_SET(fd, &rdset);		   // Thêm file descriptor fd vào tập hợp theo dõi sự kiện đọc.
+		FD_SET(p->ctl[0], &rdset); // Thêm file descriptor p->ctl[0] (có vẻ là một socket kiểm soát) vào tập hợp theo dõi sự kiện đọc.
 
 		blynk_ctl_t ctl;
-		if (p->buf_total)
+		if (p->buf_total) // nếu có dữ liệu cần gửi thù thực hiện trong if
 		{
 			/* partial write happened before */
-			FD_SET(fd, &wrset);
+			FD_SET(fd, &wrset); // thêm file descriptor fd vào tập hợp theo dõi sự kiện ghi (FD_SET(fd, &wrset)).
 		}
-		else if (xQueueReceive(c->priv.ctl_queue, &ctl, 0))
+		else if (xQueueReceive(c->priv.ctl_queue, &ctl, 0)) // lấy 1 dữ liệu từ hàng đợi c->priv.ctl_queue lưu vào ctl
 		{
-			if (!ctl.message.id)
+			if (!ctl.message.id) // nếu id là 0(lệnh đăng nhập) thì thực hiện ở trong
 			{
-				/* allocate id */
-				uint16_t id = get_id(c, ctl.deadline, ctl.handler, ctl.data);
+				/* allocate id (chỉ định id) */
+				printf("ctl.deadline %u\n", ctl.deadline);
+				printf("mess %s\n", (char *)ctl.message.payload);
+				uint16_t id = get_id(c, ctl.deadline, ctl.handler, ctl.data); // gán id cho 1 hàng đợi lệnh p->awaiting
 
 				if (!id)
 				{
+					printf("not data\n");
 					set_disconnected(c, BLYNK_ERR_MEM, 0);
 					goto fail_1;
 				}
 
 				ctl.message.id = id;
 			}
-
-			p->buf_total = blynk_serialize(p->wr_buf, sizeof(p->wr_buf), &ctl.message);
+			p->buf_total = blynk_serialize(p->wr_buf, sizeof(p->wr_buf), &ctl.message); // ghép data vào msg và trả về tổng độ dài msg
 			p->buf_sent = 0;
+			ESP_LOGI(tag, "msg %s \n", (char *)(p->wr_buf + 5));
 
 			FD_SET(fd, &wrset);
 		}
@@ -897,8 +930,9 @@ static blynk_err_t blynk_loop(blynk_client_t *c)
 			tv.tv_sec = (time_t)timeout * portTICK_RATE_MS / 1000;
 			tv.tv_usec = (((time_t)timeout * portTICK_RATE_MS) % 1000) * 1000;
 		}
-
-		int nfds = select(FD_SETSIZE, &rdset, NULL, NULL, timeout_set ? &tv : NULL);
+		// hàm select kiểm tra xem có file đọc ghi nào khôgn
+		int nfds = select(FD_SETSIZE, &rdset, &wrset, NULL, timeout_set ? &tv : NULL);
+		printf("nfds:%d\n", nfds);
 		if (nfds < 0)
 		{
 			set_disconnected(c, BLYNK_ERR_ERRNO, errno);
@@ -911,7 +945,7 @@ static blynk_err_t blynk_loop(blynk_client_t *c)
 			set_disconnected(c, ret, ret == BLYNK_ERR_ERRNO ? errno : 0);
 			goto fail_1;
 		}
-
+		printf("s->state:%d\n", s->state);
 		if (s->state == BLYNK_STATE_DISCONNECTED)
 		{
 			goto fail_1;
@@ -969,10 +1003,14 @@ static blynk_err_t blynk_loop(blynk_client_t *c)
 		if (p->buf_total && FD_ISSET(fd, &wrset))
 		{
 			/* Send outbound message */
-			int wr = write(fd, p->wr_buf + p->buf_sent, p->buf_total - p->buf_sent);
+			//int wr = write(fd, p->wr_buf + p->buf_sent, p->buf_total - p->buf_sent);
+
+			int wr = write(fd,"https://sgp1.blynk.cloud/external/api/update?token=0mUb3DKviCER9iOKVBNGNMxaxkC6dKbu&v1=150",92);
+			printf("write %d\n",wr);
 
 			if (wr < 0)
 			{
+				printf("write err\n");
 				if (errno != EAGAIN)
 				{
 					set_disconnected(c, BLYNK_ERR_ERRNO, errno);
@@ -981,9 +1019,11 @@ static blynk_err_t blynk_loop(blynk_client_t *c)
 			}
 			else
 			{
+				printf("write done\n");
 				p->buf_sent += wr;
 				if (p->buf_sent >= p->buf_total)
 				{
+					printf("write done 2\n");
 					p->buf_total = 0;
 				}
 			}
@@ -1003,6 +1043,7 @@ static void blynk_task(void *arg)
 
 	while (blynk_loop(c) == BLYNK_OK)
 	{
+		ESP_LOGI(tag, "reconnect...");
 		xSemaphoreTake(c->state.mtx, portMAX_DELAY);
 		unsigned int delay = c->state.opt.reconnect_delay;
 		xSemaphoreGive(c->state.mtx);
@@ -1016,15 +1057,18 @@ static void blynk_task(void *arg)
 
 blynk_err_t blynk_start(blynk_client_t *c)
 {
+	printf("data9: %s \n", c->state.opt.token);
 	xSemaphoreTake(c->state.mtx, portMAX_DELAY);
 	if (c->state.state != BLYNK_STATE_STOPPED)
 	{
+		printf("blynk stop \n");
 		xSemaphoreGive(c->state.mtx);
 		return BLYNK_ERR_RUNNING;
 	}
 
 	if (!xTaskCreate(blynk_task, "BlynkTask", BLYNK_TASK_STACK_SIZE, c, BLYNK_TASK_PRIO, &c->state.task))
 	{
+		printf("blynk task init err \n");
 		xSemaphoreGive(c->state.mtx);
 		return BLYNK_ERR_MEM;
 	}
@@ -1043,7 +1087,7 @@ blynk_err_t blynk_start(blynk_client_t *c)
 		},
 	};
 
-	if (handler)
+	if (handler) // nếu hanlder khác NULL thì thực hiện
 		handler(c, &ev, data);
 	return BLYNK_OK;
 }
